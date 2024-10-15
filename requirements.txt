@@ -1,0 +1,14 @@
+sys
+os
+json
+random
+math
+logging
+re
+csv
+concurrent.futures
+requests==2.31.0
+matplotlib==3.8.0
+PyQt5==5.15.9
+decimal
+enum34
