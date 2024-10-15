@@ -1,0 +1,60 @@
+{
+  "10 GP Gemstones": [
+    "Azurite",
+    "Banded Agate",
+    "Blue Quartz",
+    "Eye Agate",
+    "Hematite",
+    "Lapis Lazuli",
+    "Malachite",
+    "Moss Agate",
+    "Obsidian",
+    "Rhodochrosite",
+    "Tiger Eye",
+    "Turquoise"
+  ],
+  "50 GP Gemstones": [
+    "Bloodstone",
+    "Carnelian",
+    "Chalcedony",
+    "Chrysoprase",
+    "Citrine",
+    "Jasper",
+    "Moonstone",
+    "Onyx",
+    "Sardonyx",
+    "Star Rose Quartz",
+    "Zircon"
+  ],
+  "100 GP Gemstones": [
+    "Alexandrite",
+    "Aquamarine",
+    "Black Pearl",
+    "Blue Spinel",
+    "Topaz"
+  ],
+  "500 GP Gemstones": [
+    "Amber",
+    "Amethyst",
+    "Chrysoberyl",
+    "Coral",
+    "Garnet",
+    "Jade",
+	"Peridot",
+    "Pearl",
+    "Spinel",
+    "Tourmaline"
+  ],
+  "1000 GP Gemstones": [
+    "Emerald",
+    "Opal",
+    "Sapphire",
+    "Corundum",
+    "Star Sapphire",
+    "Ruby"
+  ],
+  "5000 GP Gemstones": [
+    "Diamond",
+    "Jacinth"
+  ]
+}
