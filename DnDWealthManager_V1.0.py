@@ -11,7 +11,7 @@ import requests
 import matplotlib.pyplot as plt
 import copy
 from collections import deque, Counter
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, InvalidOperation
 from enum import Enum
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QSplashScreen
@@ -1125,7 +1125,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
     def display_weapon_description(self, selected, deselected):
         indexes = self.weapons_table.selectionModel().selectedRows()
         if indexes:
-            index = indexes[0]
+            index = self.weapons_proxy_model.mapToSource(indexes[0])
             description = self.weapons_model.item(index.row(), 4).text()
             self.weapon_description.setText(description)
         else:
@@ -1144,14 +1144,18 @@ class DnDWealthManager(QtWidgets.QMainWindow):
         self.weapons_table.sortByColumn(column, QtCore.Qt.AscendingOrder)
 
     def remove_weapons_item(self):
-        selected = self.weapons_table.selectionModel().selectedRows()
-        for index in sorted(selected, reverse=True):
+        selected_rows = sorted(
+            {self.weapons_proxy_model.mapToSource(index).row()
+             for index in self.weapons_table.selectionModel().selectedRows()},
+            reverse=True
+        )
+        for row in selected_rows:
             row_data = {
-                'name': self.weapons_model.item(index.row(), 0).text(),
-                'value': float(self.weapons_model.item(index.row(), 1).text()),
-                'weight': float(self.weapons_model.item(index.row(), 2).text())
+                'name': self.weapons_model.item(row, 0).text(),
+                'value': float(self.weapons_model.item(row, 1).text()),
+                'weight': float(self.weapons_model.item(row, 2).text())
             }
-            self.weapons_model.removeRow(index.row())
+            self.weapons_model.removeRow(row)
             action = {
                 'action_type': 'remove_weapons_item',
                 'data': row_data
@@ -1267,7 +1271,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
     def display_armor_description(self, selected, deselected):
         indexes = self.armor_table.selectionModel().selectedRows()
         if indexes:
-            index = indexes[0]
+            index = self.armor_proxy_model.mapToSource(indexes[0])
             description = self.armor_model.item(index.row(), 4).text()
             self.armor_description.setText(description)
         else:
@@ -1286,14 +1290,18 @@ class DnDWealthManager(QtWidgets.QMainWindow):
         self.armor_table.sortByColumn(column, QtCore.Qt.AscendingOrder)
 
     def remove_armor_item(self):
-        selected = self.armor_table.selectionModel().selectedRows()
-        for index in sorted(selected, reverse=True):
+        selected_rows = sorted(
+            {self.armor_proxy_model.mapToSource(index).row()
+             for index in self.armor_table.selectionModel().selectedRows()},
+            reverse=True
+        )
+        for row in selected_rows:
             row_data = {
-                'name': self.armor_model.item(index.row(), 0).text(),
-                'value': float(self.armor_model.item(index.row(), 1).text()),
-                'weight': float(self.armor_model.item(index.row(), 2).text())
+                'name': self.armor_model.item(row, 0).text(),
+                'value': float(self.armor_model.item(row, 1).text()),
+                'weight': float(self.armor_model.item(row, 2).text())
             }
-            self.armor_model.removeRow(index.row())
+            self.armor_model.removeRow(row)
             action = {
                 'action_type': 'remove_armor_item',
                 'data': row_data
@@ -1388,7 +1396,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
     def display_misc_description(self, selected, deselected):
         indexes = self.misc_table.selectionModel().selectedRows()
         if indexes:
-            index = indexes[0]
+            index = self.misc_proxy_model.mapToSource(indexes[0])
             description_item = self.misc_model.item(index.row(), 4)  # Column 4 is Description
             description = description_item.text() if description_item else ''
             self.misc_description.setText(description)
@@ -1555,7 +1563,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
     def display_art_description(self, selected, deselected):
         indexes = self.art_table.selectionModel().selectedRows()
         if indexes:
-            index = indexes[0]
+            index = self.art_proxy_model.mapToSource(indexes[0])
             description = self.art_model.item(index.row(), 3).text()
             self.art_description.setText(description)
         else:
@@ -1656,7 +1664,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
     def display_magic_description(self, selected, deselected):
         indexes = self.magic_table.selectionModel().selectedRows()
         if indexes:
-            index = indexes[0]
+            index = self.magic_proxy_model.mapToSource(indexes[0])
             description_item = self.magic_model.item(index.row(), 5)  # Column 5 is Description
             description = description_item.text() if description_item else ''
             self.magic_description.setText(description)
@@ -1712,12 +1720,12 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                     break
         elif category == 'Art Objects':
             for row in range(self.art_model.rowCount()):
-                if self.art_model.item(row, 0).text() == name and self.art_model.item(row, 3).text() == ('Yes' if bought_from_shop else 'No'):
+                if self.art_model.item(row, 0).text() == name and self.art_model.item(row, 4).text() == ('Yes' if bought_from_shop else 'No'):
                     self.art_model.removeRow(row)
                     break
         elif category == 'Magic Items':
             for row in range(self.magic_model.rowCount()):
-                if self.magic_model.item(row, 0).text() == name and self.magic_model.item(row, 5).text() == ('Yes' if bought_from_shop else 'No'):
+                if self.magic_model.item(row, 0).text() == name and self.magic_model.item(row, 6).text() == ('Yes' if bought_from_shop else 'No'):
                     self.magic_model.removeRow(row)
                     break
 
@@ -1741,7 +1749,8 @@ class DnDWealthManager(QtWidgets.QMainWindow):
             self.art_model.appendRow([
                 QtGui.QStandardItem(name),
                 QtGui.QStandardItem(str(sell_price)),
-                QtGui.QStandardItem("1"),  
+                QtGui.QStandardItem("1"),
+                QtGui.QStandardItem(""),
                 QtGui.QStandardItem('Yes')
             ])
         elif category == 'Magic Items':
@@ -1750,7 +1759,8 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 QtGui.QStandardItem('Unknown'),  
                 QtGui.QStandardItem('Yes'),
                 QtGui.QStandardItem(str(sell_price)),
-                QtGui.QStandardItem("0"),  
+                QtGui.QStandardItem("0"),
+                QtGui.QStandardItem(""),
                 QtGui.QStandardItem('Yes')
             ])
 
@@ -2755,13 +2765,14 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 total_value = get_item_text(self.gem_model, row, 2, '0')
                 weight = get_item_text(self.gem_model, row, 3, '0.01')
                 bought_from_shop = get_item_text(self.gem_model, row, 4)
+                quantity_int = 0
                 try:
                     quantity_int = int(quantity)
                     total_value_dec = Decimal(total_value)
                     weight_dec = Decimal(weight)
                     value_per_item = (total_value_dec / quantity_int).quantize(Decimal('0.01')) if quantity_int else Decimal('0')
                     weight_per_item = (weight_dec / quantity_int).quantize(Decimal('0.0001')) if quantity_int else Decimal('0')
-                except (InvalidOperation, ZeroDivisionError):
+                except (InvalidOperation, ZeroDivisionError, ValueError):
                     value_per_item = Decimal('0')
                     weight_per_item = Decimal('0')
                 for _ in range(quantity_int):
@@ -2779,7 +2790,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 name = get_item_text(self.art_model, row, 0)
                 value = get_item_text(self.art_model, row, 1)
                 weight = get_item_text(self.art_model, row, 2)
-                bought_from_shop = get_item_text(self.art_model, row, 3)
+                bought_from_shop = get_item_text(self.art_model, row, 4)
                 row_items = [
                     QtGui.QStandardItem(name),
                     QtGui.QStandardItem('Art Objects'),
@@ -2794,7 +2805,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 name = get_item_text(self.magic_model, row, 0)
                 value = get_item_text(self.magic_model, row, 3)
                 weight = get_item_text(self.magic_model, row, 4)
-                bought_from_shop = get_item_text(self.magic_model, row, 5)
+                bought_from_shop = get_item_text(self.magic_model, row, 6)
                 row_items = [
                     QtGui.QStandardItem(name),
                     QtGui.QStandardItem('Magic Items'),
@@ -3022,7 +3033,13 @@ class DnDWealthManager(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Warning", "Number of members must be at least 1.")
             return
 
-        member_names = [input.text().strip() if input.text().strip() else f"Member {i + 1}" for i, input in enumerate(self.member_inputs)]
+        member_names = [entry.text().strip() or f"Member {i + 1}"
+                        for i, entry in enumerate(self.member_inputs)]
+        if len(set(member_names)) != len(member_names):
+            QtWidgets.QMessageBox.warning(
+                self, "Duplicate party members",
+                "Each party member needs a unique name before loot can be distributed.")
+            return
         distributions = {name: {'Coins': {}, 'Items': [], 'Total Value': Decimal('0')} for name in member_names}
 
         distribution_method = self.distribution_method_combo.currentText()
@@ -3220,49 +3237,65 @@ class DnDWealthManager(QtWidgets.QMainWindow):
         self.total_weight = total_weight
   
     def remove_misc_item(self):
-        selected = self.misc_table.selectionModel().selectedRows()
-        for index in sorted(selected, reverse=True):
+        selected_rows = sorted(
+            {self.misc_proxy_model.mapToSource(index).row()
+             for index in self.misc_table.selectionModel().selectedRows()},
+            reverse=True
+        )
+        for row in selected_rows:
             row_data = {
-                'name': self.misc_model.item(index.row(), 0).text(),
-                'value': float(self.misc_model.item(index.row(), 1).text()),
-                'weight': float(self.misc_model.item(index.row(), 2).text())
+                'name': self.misc_model.item(row, 0).text(),
+                'value': float(self.misc_model.item(row, 1).text()),
+                'weight': float(self.misc_model.item(row, 2).text())
             }
-            self.misc_model.removeRow(index.row())
+            self.misc_model.removeRow(row)
 
     def remove_gem_item(self):
-        selected = self.gem_table.selectionModel().selectedRows()
-        for index in sorted(selected, reverse=True):
+        selected_rows = sorted(
+            {self.gem_proxy_model.mapToSource(index).row()
+             for index in self.gem_table.selectionModel().selectedRows()},
+            reverse=True
+        )
+        for row in selected_rows:
             row_data = {
-                'type': self.gem_model.item(index.row(), 0).text(),
-                'quantity': int(self.gem_model.item(index.row(), 1).text()),
-                'total_value': float(self.gem_model.item(index.row(), 2).text()),
-                'weight': float(self.gem_model.item(index.row(), 3).text())
+                'type': self.gem_model.item(row, 0).text(),
+                'quantity': int(self.gem_model.item(row, 1).text()),
+                'total_value': float(self.gem_model.item(row, 2).text()),
+                'weight': float(self.gem_model.item(row, 3).text())
             }
-            self.gem_model.removeRow(index.row())
+            self.gem_model.removeRow(row)
 
     def remove_art_item(self):
-        selected = self.art_table.selectionModel().selectedRows()
-        for index in sorted(selected, reverse=True):
+        selected_rows = sorted(
+            {self.art_proxy_model.mapToSource(index).row()
+             for index in self.art_table.selectionModel().selectedRows()},
+            reverse=True
+        )
+        for row in selected_rows:
             row_data = {
-                'name': self.art_model.item(index.row(), 0).text(),
-                'value': float(self.art_model.item(index.row(), 1).text()),
-                'weight': float(self.art_model.item(index.row(), 2).text())
+                'name': self.art_model.item(row, 0).text(),
+                'value': float(self.art_model.item(row, 1).text()),
+                'weight': float(self.art_model.item(row, 2).text())
             }
 
-            self.art_model.removeRow(index.row())
+            self.art_model.removeRow(row)
 
     def remove_magic_item(self):
-        selected = self.magic_table.selectionModel().selectedRows()
-        for index in sorted(selected, reverse=True):
+        selected_rows = sorted(
+            {self.magic_proxy_model.mapToSource(index).row()
+             for index in self.magic_table.selectionModel().selectedRows()},
+            reverse=True
+        )
+        for row in selected_rows:
             row_data = {
-                'name': self.magic_model.item(index.row(), 0).text(),
-                'rarity': self.magic_model.item(index.row(), 1).text(),
-                'attunement': self.magic_model.item(index.row(), 2).text(),
-                'value': float(self.magic_model.item(index.row(), 3).text()),
-                'weight': float(self.magic_model.item(index.row(), 4).text())
+                'name': self.magic_model.item(row, 0).text(),
+                'rarity': self.magic_model.item(row, 1).text(),
+                'attunement': self.magic_model.item(row, 2).text(),
+                'value': float(self.magic_model.item(row, 3).text()),
+                'weight': float(self.magic_model.item(row, 4).text())
             }
 
-            self.magic_model.removeRow(index.row())
+            self.magic_model.removeRow(row)
             
     def save_profile(self):
         options = QtWidgets.QFileDialog.Options()
