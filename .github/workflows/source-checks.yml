@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m py_compile DnDWealthManager_V1.0.py DnDWealthManager_V1_0_import.py
+      - run: python -m py_compile DnDWealthManager_V1.0.py DnDWealthManager_V1_0_import.py profile_validation.py
       - name: Validate bundled JSON
         run: |
           python - <<'PY'
