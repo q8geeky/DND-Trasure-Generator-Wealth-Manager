@@ -476,7 +476,13 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 self.item_description.setText("Item URL is missing.")
                 return
 
-            item_response = requests.get(f"https://www.dnd5eapi.co{item_url}", timeout=15)
+            try:
+                item_response = requests.get(
+                    f"https://www.dnd5eapi.co{item_url}", timeout=15)
+            except requests.exceptions.RequestException as exc:
+                logging.warning("Unable to load item description: %s", exc)
+                self.item_description.setText("Item description unavailable while offline.")
+                return
             if item_response.status_code == 200:
                 try:
                     item_data = item_response.json()
@@ -727,8 +733,13 @@ class DnDWealthManager(QtWidgets.QMainWindow):
 
         item_url = self.shop_model.item(index.row(), 0).data(QtCore.Qt.UserRole)
         if item_url:
-            item_response = requests.get(f"https://www.dnd5eapi.co{item_url}", timeout=15)
-            if item_response.status_code == 200:
+            try:
+                item_response = requests.get(
+                    f"https://www.dnd5eapi.co{item_url}", timeout=15)
+            except requests.exceptions.RequestException as exc:
+                logging.warning("Purchase item description unavailable: %s", exc)
+                item_response = None
+            if item_response is not None and item_response.status_code == 200:
                 try:
                     item_data = item_response.json()
                     description = '\n'.join(item_data.get('desc', ['No description available.']))
