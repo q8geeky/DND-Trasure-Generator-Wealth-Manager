@@ -13,6 +13,7 @@ import copy
 from collections import deque, Counter
 from decimal import Decimal, ROUND_DOWN, InvalidOperation
 from enum import Enum
+from profile_validation import validate_profile, MAX_PROFILE_BYTES
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QSplashScreen
 from PyQt5.QtCore import Qt, QTimer
@@ -3316,6 +3317,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
         )
         if filename:
             data = {
+                'profile_version': 1,
                 'currency_vars': {k: str(v) for k, v in self.currency_vars.items()},
                 'misc_items': [],
                 'gems': [],
@@ -3426,10 +3428,11 @@ class DnDWealthManager(QtWidgets.QMainWindow):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Load Profile", default_directory, "JSON Files (*.json)", options=options)
         if filename:
             try:
+                if os.path.getsize(filename) > MAX_PROFILE_BYTES:
+                    raise ValueError("Profile exceeds the maximum supported file size.")
                 with open(filename, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    if not isinstance(data, dict):
-                        raise ValueError("Profile must be a JSON object.")
+                    validate_profile(data)
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Error", f"Failed to load profile: {e}")
                 return
