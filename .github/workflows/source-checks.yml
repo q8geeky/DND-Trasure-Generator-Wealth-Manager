@@ -1,0 +1,21 @@
+name: Python source and data checks
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m py_compile DnDWealthManager_V1.0.py
+      - name: Validate bundled JSON
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          for p in Path(".").glob("*.json"):
+              data=json.loads(p.read_text(encoding="utf-8"))
+              assert isinstance(data,(dict,list)), p
+              print("valid",p)
+          PY
