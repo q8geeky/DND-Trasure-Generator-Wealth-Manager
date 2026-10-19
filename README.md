@@ -21,7 +21,7 @@ Use the **Save Profile** and **Load Profile** menu options. Save operations use 
 
 ## Known limitations
 
-This is a large early-stage, single-file application. No end-to-end Qt GUI regression suite or independent game-rule verification has been completed. Existing game economy and wealth-distribution formulas are not changed by the reliability patch. Some dialogs assume the 2014 5e rules and may need review for later rule sets.
+This is a large early-stage, single-file application. Headless Qt GUI tests now cover filtered inventory selection, purchase flags, duplicate party members, profile round-trips, and offline API failures. Physical desktop interaction and independent game-rule verification have not been completed. Existing game economy and wealth-distribution formulas are not changed by the reliability patch. Some dialogs assume the 2014 5e rules and may need review for later rule sets.
 
 ## Improvements in this branch
 
