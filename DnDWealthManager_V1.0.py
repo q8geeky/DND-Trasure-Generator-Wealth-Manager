@@ -26,10 +26,10 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 SPLASH_FONT_SIZE = 16  # Adjust the font size here
 
 # Desired size for the splash screen image (width, height)
-SPLASH_IMAGE_SIZE = (800, 800)  # Adjust the image size here
+SPLASH_IMAGE_SIZE = (640, 640)  # Adjust the image size here
 
 # Splash screen display duration in milliseconds (set to 0 for auto-close)
-SPLASH_DISPLAY_TIME = 7000  # 7000 ms = 7 seconds
+SPLASH_DISPLAY_TIME = 1200  # 7000 ms = 7 seconds
 
 # Hex color codes for the splash screen message
 SPLASH_TEXT_COLOR = "#FF5733"  # Orange-Red color
@@ -43,7 +43,7 @@ def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, relative_path)
 
 with open(resource_path('art_objects.json'), 'r') as f:
@@ -476,7 +476,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 self.item_description.setText("Item URL is missing.")
                 return
 
-            item_response = requests.get(f"https://www.dnd5eapi.co{item_url}")
+            item_response = requests.get(f"https://www.dnd5eapi.co{item_url}", timeout=15)
             if item_response.status_code == 200:
                 try:
                     item_data = item_response.json()
@@ -526,7 +526,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
         try:
             results = []
             for url in urls:
-                response = requests.get(url)
+                response = requests.get(url, timeout=15)
                 if response.status_code != 200:
                     continue
                 data = response.json()
@@ -542,7 +542,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
 
             def fetch_item_data(url):
                 try:
-                    item_response = requests.get(url)
+                    item_response = requests.get(url, timeout=15)
                     if item_response.status_code != 200:
                         return None
                     return item_response.json()
@@ -612,7 +612,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 # Categories like 'art objects' or 'gems' do not require descriptions
                 return ""
             
-            response = requests.get(search_url)
+            response = requests.get(search_url, timeout=15)
             if response.status_code != 200:
                 logging.error(f"Failed to fetch from {search_url}: Status code {response.status_code}")
                 return "No description available."
@@ -624,7 +624,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
             for item in results:
                 if item['name'].lower() == item_name.lower():
                     item_url = f"https://www.dnd5eapi.co{item['url']}"
-                    item_response = requests.get(item_url)
+                    item_response = requests.get(item_url, timeout=15)
                     if item_response.status_code == 200:
                         item_data = item_response.json()
                         description = '\n'.join(item_data.get('desc', ["No description available."]))
@@ -636,7 +636,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 normalized_item_name = re.sub(r'[^\w\s]', '', item['name']).lower()
                 if normalized_item_name in normalized_input or normalized_input in normalized_item_name:
                     item_url = f"https://www.dnd5eapi.co{item['url']}"
-                    item_response = requests.get(item_url)
+                    item_response = requests.get(item_url, timeout=15)
                     if item_response.status_code == 200:
                         item_data = item_response.json()
                         description = '\n'.join(item_data.get('desc', ["No description available."]))
@@ -650,7 +650,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
                 for item in results:
                     if item['name'] == matched_item:
                         item_url = f"https://www.dnd5eapi.co{item['url']}"
-                        item_response = requests.get(item_url)
+                        item_response = requests.get(item_url, timeout=15)
                         if item_response.status_code == 200:
                             item_data = item_response.json()
                             description = '\n'.join(item_data.get('desc', ["No description available."]))
@@ -727,7 +727,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
 
         item_url = self.shop_model.item(index.row(), 0).data(QtCore.Qt.UserRole)
         if item_url:
-            item_response = requests.get(f"https://www.dnd5eapi.co{item_url}")
+            item_response = requests.get(f"https://www.dnd5eapi.co{item_url}", timeout=15)
             if item_response.status_code == 200:
                 try:
                     item_data = item_response.json()
@@ -2135,7 +2135,7 @@ class DnDWealthManager(QtWidgets.QMainWindow):
 
     def load_json(self, file_name, required_keys=None):
         try:
-            with open(file_name, 'r') as f:
+            with open(resource_path(file_name), 'r', encoding='utf-8') as f:
                 data = json.load(f)
             if required_keys:
                 for key in required_keys:
@@ -3359,8 +3359,19 @@ class DnDWealthManager(QtWidgets.QMainWindow):
 
             # Save to JSON file
             try:
-                with open(filename, 'w') as f:
-                    json.dump(data, f, indent=4)
+                # Write to a sibling temporary file before replacing a user's save.
+                # Existing saves remain intact when serialization fails.
+                import tempfile
+                directory = os.path.dirname(os.path.abspath(filename))
+                fd, tmp_path = tempfile.mkstemp(
+                    prefix=".dnd-profile-", suffix=".json", dir=directory)
+                try:
+                    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                        json.dump(data, f, indent=4)
+                    os.replace(tmp_path, filename)
+                finally:
+                    if os.path.exists(tmp_path):
+                        os.unlink(tmp_path)
                 QtWidgets.QMessageBox.information(self, "Success", "Profile saved successfully.")
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Error", f"Failed to save profile: {e}")
@@ -3371,8 +3382,10 @@ class DnDWealthManager(QtWidgets.QMainWindow):
         filename, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Load Profile", default_directory, "JSON Files (*.json)", options=options)
         if filename:
             try:
-                with open(filename, 'r') as f:
+                with open(filename, 'r', encoding='utf-8') as f:
                     data = json.load(f)
+                    if not isinstance(data, dict):
+                        raise ValueError("Profile must be a JSON object.")
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Error", f"Failed to load profile: {e}")
                 return
@@ -3516,7 +3529,12 @@ def main():
     app.setWindowIcon(app_icon)
     
     # Create the splash screen pixmap
-    splash_pix = QPixmap(resource_path('icon.png'))
+    image_path = resource_path('icon.png')
+    splash_pix = QPixmap(image_path)
+    if splash_pix.isNull():
+        # A missing optional image must not prevent application startup.
+        splash_pix = QPixmap(640, 360)
+        splash_pix.fill(QtGui.QColor("#23273b"))
     
     # Resize the splash screen image if desired
     splash_pix = splash_pix.scaled(
