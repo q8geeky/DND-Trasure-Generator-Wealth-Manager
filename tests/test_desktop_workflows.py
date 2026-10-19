@@ -99,6 +99,26 @@ class TestDesktopWorkflows(unittest.TestCase):
             self.assertEqual(self.window.misc_model.item(0, 4).text(), "Climbing rope")
             self.assertEqual(self.window.magic_model.item(0, 6).text(), "Yes")
 
+    def test_offline_shop_description_does_not_crash(self):
+        import requests
+        from PyQt5 import QtCore
+        lantern = QtGui.QStandardItem("Lantern")
+        lantern.setData("/api/equipment/lantern", QtCore.Qt.UserRole)
+        self.window.shop_model.appendRow([
+            lantern,
+            QtGui.QStandardItem("Adventuring Gear"),
+            QtGui.QStandardItem("5"),
+            QtGui.QStandardItem("1"),
+        ])
+        with patch("requests.get", side_effect=requests.exceptions.ConnectionError("offline")):
+            self.window.shop_table.selectRow(0)
+            self.window.display_item_description(None, None)
+            self.assertIn("unavailable", self.window.item_description.toPlainText().lower())
+            with patch.object(QtWidgets.QMessageBox, "question",
+                              return_value=QtWidgets.QMessageBox.No):
+                self.window.buy_shop_item()
+
+
 
 if __name__ == "__main__":
     unittest.main()
