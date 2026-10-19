@@ -119,6 +119,25 @@ class TestDesktopWorkflows(unittest.TestCase):
                 self.window.buy_shop_item()
 
 
+    def test_invalid_profile_preserves_existing_inventory(self):
+        self.window.weapons_model.appendRow(
+            row("Keep this sword", "10", "1", "No", "Original item"))
+        with tempfile.TemporaryDirectory() as td:
+            path=Path(td)/"invalid.json"
+            path.write_text(json.dumps({
+                "weapons": [{
+                    "Name": "Wrong item", "Value": "not-a-number", "Weight": "1"
+                }]
+            }),encoding="utf-8")
+            with patch.object(QtWidgets.QFileDialog, "getOpenFileName",
+                              return_value=(str(path), "JSON Files (*.json)")), \
+                 patch.object(QtWidgets.QMessageBox, "critical") as error:
+                self.window.load_profile()
+            self.assertTrue(error.called)
+            self.assertEqual(self.window.weapons_model.rowCount(),1)
+            self.assertEqual(self.window.weapons_model.item(0,0).text(),"Keep this sword")
+
+
 
 if __name__ == "__main__":
     unittest.main()
