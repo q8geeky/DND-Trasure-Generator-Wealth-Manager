@@ -1,21 +1,30 @@
-name: Python source and data checks
+name: Python source, data and headless GUI checks
+
 on: [push, pull_request]
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      QT_QPA_PLATFORM: offscreen
+      MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m py_compile DnDWealthManager_V1.0.py
+      - run: python -m py_compile DnDWealthManager_V1.0.py DnDWealthManager_V1_0_import.py
       - name: Validate bundled JSON
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          for p in Path(".").glob("*.json"):
-              data=json.loads(p.read_text(encoding="utf-8"))
-              assert isinstance(data,(dict,list)), p
-              print("valid",p)
+          for path in Path(".").glob("*.json"):
+              value=json.loads(path.read_text(encoding="utf-8"))
+              assert isinstance(value,(list,dict)), path
+              print("valid",path)
           PY
+      - run: python -m pip install -r requirements.txt
+      - name: Exercise Qt inventories, filtered selection and profile persistence
+        run: timeout 120s python -m unittest discover -s tests -v
